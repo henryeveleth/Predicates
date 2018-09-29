@@ -69,7 +69,7 @@ module Predicates
         {:argument => previous[:argument], :value => val, :result => true}
       end
     end
-  rescue ArgumentError, TypeError => e
+  rescue ArgumentError, TypeError, NoMethodError => e
     raise e
   end
 
@@ -82,33 +82,7 @@ module Predicates
         {:argument => previous[:argument], :value => val, :result => false}
       end
     end
-  rescue ArgumentError, TypeError => e
-    raise e
-  end
-
-  def largest(previous) 
-    lambda do |val| 
-      previous = previous.call val
-      if previous[:result]
-        {:argument => previous[:argument], :value => val, :result => previous[:argument].max }
-      else
-        {:argument => previous[:argument], :value => val, :result => false}
-      end
-    end
-  rescue ArgumentError, TypeError => e
-    raise e
-  end
-
-  def smallest(previous) 
-    lambda do |val| 
-      previous = previous.call val
-      if previous[:result]
-        {:argument => previous[:argument], :value => val, :result => previous[:argument].min }
-      else
-        {:argument => previous[:argument], :value => val, :result => false}
-      end
-    end
-  rescue ArgumentError, TypeError => e
+  rescue ArgumentError, TypeError, NoMethodError => e
     raise e
   end
 
@@ -121,7 +95,7 @@ module Predicates
         {:argument => previous[:argument], :value => val, :result => false}
       end
     end
-  rescue ArgumentError, TypeError => e
+  rescue ArgumentError, TypeError, NoMethodError => e
     raise e
   end
 
@@ -135,6 +109,53 @@ module Predicates
     alias_method name, :identity
   end
 
+  def self.create_adjective(word, &meaning)
+    if block_given? && !self.methods.include?(word)
+      begin
+        type = meaning.call.class
+      rescue NoMethodError
+        type = NilClass
+      end
+      
+      if type == Method
+        def body(meth, previous)
+          lambda do |val|
+            previous = previous.call val
+            meth = meth.call
+            if previous[:result]
+              {:argument => previous[:argument], :value => val, :result => meth.unbind.bind(previous[:argument]).call }
+            else
+              {:argument => previous[:argument], :value => val, :result => false}
+            end
+          end
+        rescue ArgumentError, TypeError, NoMethodError => e
+          raise e
+        end
+      
+        define_method(word, lambda(&method(:body).curry[meaning]))
+        true
+      else
+        def body(meth, previous)
+          lambda do |val|
+            previous = previous.call val
+            if previous[:result]
+              {:argument => previous[:argument], :value => val, :result => meth.call(previous[:argument]) }
+            else
+              {:argument => previous[:argument], :value => val, :result => false}
+            end
+          end
+        rescue ArgumentError, TypeError, NoMethodError => e
+          raise e
+        end
+      
+        define_method(word, lambda(&method(:body).curry[meaning]))
+        true
+      end
+    else
+      false
+    end
+  end
+  
   # note that ints are true, so while things work (with if previous[:result], eg)
   # not working how you think.
 
