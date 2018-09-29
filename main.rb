@@ -7,3 +7,5 @@ include Predicates
 # Various words
 Predicates.create_adjective(:smallest) { Array.new.method(:min) }
 Predicates.create_adjective(:largest) { Array.new.method(:max) }
+Predicates.create_identity(:of)
+Predicates.create_identity(:the)
