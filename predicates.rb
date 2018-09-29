@@ -90,7 +90,7 @@ module Predicates
             previous = previous.call val
             meth = meth.call
             if previous[:result]
-              {:argument => previous[:argument], :value => val, :result => meth.unbind.bind(previous[:argument]).call }
+              {:argument => previous[:argument], :value => val, :result => previous[:argument].send(meth.name) }
             else
               {:argument => previous[:argument], :value => val, :result => false}
             end
